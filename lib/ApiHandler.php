@@ -78,11 +78,13 @@ class ApiHandler
         } else {
             $params = ($optParams == null ? '' : '?' . http_build_query($optParams));
 
-            $requestHeaders = [
-                'Authorization' => $this->token_type . ' ' . $this->access_token,
-            ];
-            $curlOptions = [
-                CURLOPT_SSL_VERIFYPEER => false,
+            $requestOptions = [
+                'curl' => [
+                    CURLOPT_SSL_VERIFYPEER => false,
+                ],
+                'headers' => [
+                    'Authorization' => $this->token_type . ' ' . $this->access_token,
+                ]
             ];
 
             if ($url == null) {
@@ -101,47 +103,29 @@ class ApiHandler
                     // nothing
                     break;
                 case 'POST':
-                    $jsonFields = json_encode($fields);
-                    $requestHeaders += [
-                        'Content-Type' => $this->api_conf->Interfaces->$name->Media_Type,
-                        'Content-Length' => strlen($jsonFields),
-                    ];
-                    $curlOptions[CURLOPT_FOLLOWLOCATION] = false;
-                    $curlOptions[CURLOPT_POSTFIELDS] = $jsonFields;
-                    break;
                 case 'PUT':
                     $jsonFields = json_encode($fields);
-                    $requestHeaders += [
-                        'Content-Type' => $this->api_conf->Interfaces->$name->Media_Type,
-                        'Content-Length' => strlen($jsonFields),
-                    ];
-                    $curlOptions[CURLOPT_FOLLOWLOCATION] = false;
-                    $curlOptions[CURLOPT_POSTFIELDS] = $jsonFields;
+                    $requestOptions['headers']['Content-Type'] = $this->api_conf->Interfaces->$name->Media_Type;
+                    $requestOptions['headers']['Content-Length'] = strlen($jsonFields);
+                    $requestOptions['allow_redirects'] = false;
+                    $requestOptions['body'] = $jsonFields;
                     break;
                 case 'DELETE':
-                    $requestHeaders += [
-                        'Content-Type' => $this->api_conf->Interfaces->$name->Media_Type,
-                        'Content-Length' => 0,
-                    ];
-                    $curlOptions[CURLOPT_FOLLOWLOCATION] = false;
+                    $requestOptions['headers']['Content-Type'] = $this->api_conf->Interfaces->$name->Media_Type;
+                    $requestOptions['headers']['Content-Length'] = 0;
+                    $requestOptions['allow_redirects'] = false;
                     break;
             }
 
             $client = $this->createHttpClient();
-            $request = $client->createRequest(
+            $response = $client->request(
                 $requestMethod,
                 $requestUrl,
-                [
-                    'config' => [
-                        'curl' => $curlOptions
-                    ]
-                ]
+                $requestOptions
             );
-            $request->addHeaders($requestHeaders);
-            $response = $client->send($request);
             $responseCode = $response->getStatusCode();
 
-            if ($responseCode === "200") {
+            if ($responseCode === 200) {
                 $decodeResponse = json_decode($response->getBody());
                 return ($decodeResponse);
             } elseif (in_array($responseCode, ['201', '204', '301', '304'])) {
