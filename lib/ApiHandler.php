@@ -99,18 +99,15 @@ class ApiHandler
                 case 'GET':
                     // nothing
                     break;
-                case 'POST':
-                case 'PUT':
-                    $jsonFields = json_encode($fields);
-                    $requestOptions['headers']['Content-Type'] = $this->api_conf->Interfaces->$name->Media_Type;
-                    $requestOptions['headers']['Content-Length'] = strlen($jsonFields);
-                    $requestOptions['allow_redirects'] = false;
-                    $requestOptions['body'] = $jsonFields;
-                    break;
                 case 'DELETE':
                     $requestOptions['headers']['Content-Type'] = $this->api_conf->Interfaces->$name->Media_Type;
                     $requestOptions['headers']['Content-Length'] = 0;
                     $requestOptions['allow_redirects'] = false;
+                    break;
+                case 'POST':
+                case 'PUT':
+                    $requestOptions['body'] = json_encode($fields);
+                    $requestOptions['headers']['Content-Length'] = strlen($requestOptions['body']);
                     break;
             }
 
@@ -123,8 +120,7 @@ class ApiHandler
             $responseCode = $response->getStatusCode();
 
             if ($responseCode === 200) {
-                $decodeResponse = json_decode($response->getBody());
-                return ($decodeResponse);
+                return json_decode($response->getBody());
             } elseif (in_array($responseCode, ['201', '204', '301', '304'])) {
                 return true;
             } else {
