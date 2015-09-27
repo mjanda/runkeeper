@@ -79,9 +79,6 @@ class ApiHandler
             $params = ($optParams == null ? '' : '?' . http_build_query($optParams));
 
             $requestOptions = [
-                'curl' => [
-                    CURLOPT_SSL_VERIFYPEER => false,
-                ],
                 'headers' => [
                     'Authorization' => $this->token_type . ' ' . $this->access_token,
                 ]
